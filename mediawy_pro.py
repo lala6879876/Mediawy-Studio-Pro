@@ -6,7 +6,7 @@ from PIL import Image, ImageDraw, ImageFont
 from gtts import gTTS
 import re
 
-# --- 1. الاستدعاء الخام لـ MoviePy (تجنب فخ الـ config) ---
+# --- 1. الاستدعاء الاحترافي (تجنب موديول config المفقود) ---
 import moviepy
 from moviepy.video.VideoClip import ImageClip
 from moviepy.audio.io.AudioFileClip import AudioFileClip
@@ -14,16 +14,16 @@ from moviepy.audio.AudioClip import CompositeAudioClip
 from moviepy.video.compositing.concatenate import concatenate_videoclips
 from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
 
-# التعديل الذهبي: ضبط المحرك يدوياً في ذاكرة النظام مباشرة
-# ده بيهرب من خطأ "from moviepy.config import configure" تماماً
-if os.name == 'posix': # سيرفر Streamlit (Linux)
+# التعديل الملياري: ضبط المحرك عن طريق نظام التشغيل مباشرة
+# ده بيخلينا نستغنى عن سطر "from moviepy.config import configure" تماماً
+if os.name == 'posix':  # سيرفر Streamlit (Linux)
     os.environ["IMAGEMAGICK_BINARY"] = "/usr/bin/convert"
-else: # جهازك الشخصي (Windows)
+else:  # جهازك الشخصي (Windows)
     magick_path = r"C:\Program Files\ImageMagick-7.1.1-Q16-HDRI\magick.exe"
     if os.path.exists(magick_path):
         os.environ["IMAGEMAGICK_BINARY"] = magick_path
 
-# --- 2. إعداد المسارات المؤقتة ---
+# --- 2. إعداد المجلدات المؤقتة ---
 BASE_PATH = os.getcwd()
 MEDIA_DIR = os.path.join(BASE_PATH, "Mediawy_Studio")
 ASSETS_DIR = os.path.join(MEDIA_DIR, "Assets")
@@ -31,7 +31,7 @@ VIDEOS_DIR = os.path.join(MEDIA_DIR, "Videos")
 for d in [ASSETS_DIR, VIDEOS_DIR]: 
     os.makedirs(d, exist_ok=True)
 
-# --- 3. محرك الرسم (ثبات اللوجو والبنر) ---
+# --- 3. دوال الرسم (ثبات اللوجو والبنر) ---
 def create_static_layer(size, logo_path, marquee_text):
     img = Image.new("RGBA", size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
@@ -62,8 +62,8 @@ def create_text_clip(size, text, start_t, dur):
     return ImageClip(np.array(img)).with_start(start_t).with_duration(dur).with_position('center')
 
 # --- 4. واجهة المستخدم ---
-st.set_page_config(page_title="Mediawy Pro V27", layout="wide")
-st.title("🎬 Mediawy Studio V27 - No-Config Edition")
+st.set_page_config(page_title="Mediawy Pro V28", layout="wide")
+st.title("🎬 Mediawy Studio V28 - Final Deployment")
 
 with st.sidebar:
     st.header("⚙️ مركز التحكم")
@@ -85,7 +85,6 @@ if st.button("إطلاق خط الإنتاج 🚀", use_container_width=True):
             voice_clip = AudioFileClip(audio_p)
             total_dur = voice_clip.duration
 
-            # تحليل الجمل
             sentences = [s.strip() for s in re.split(r'[.؟!،,]+', ai_text) if len(s.strip()) > 2]
             num_clips = len(sentences)
             dur_per_clip = total_dur / num_clips if num_clips > 0 else total_dur
@@ -117,7 +116,7 @@ if st.button("إطلاق خط الإنتاج 🚀", use_container_width=True):
             
             final_vid.write_videofile(out_p, fps=24, codec="libx264")
             st.video(out_p)
-            st.success("🔥 مبروك! المكنة اشتغلت أونلاين رسمياً.")
+            st.success("🔥 مبروك! المكنة اشتغلت أونلاين بنجاح.")
             
         except Exception as e:
             st.error(f"⚠️ خطأ أثناء الإنتاج: {str(e)}")
