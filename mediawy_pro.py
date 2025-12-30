@@ -1,43 +1,32 @@
 import streamlit as st
 import os
-import time
 import requests
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from gtts import gTTS
 import re
 
-# --- 1. الاستدعاء العبقري (Universal Imports for MoviePy 2.x) ---
+# --- 1. الاستدعاء الذكي لـ MoviePy 2.0+ ---
 import moviepy as mp
-# بننادي الأدوات مباشرة من المحرك الأساسي لتجنب أخطاء المسارات الفرعية
 from moviepy import ImageClip, AudioFileClip, CompositeAudioClip, concatenate_videoclips, CompositeVideoClip
-from moviepy.config import configure
 
-# إعداد ImageMagick للسيرفر
-try:
-    if os.name == 'posix': # Linux (Streamlit Cloud)
-        configure(IMAGEMAGICK_BINARY="convert")
-    else: # Windows (Local)
-        magick_path = r"C:\Program Files\ImageMagick-7.1.1-Q16-HDRI\magick.exe"
-        if os.path.exists(magick_path):
-            configure(IMAGEMAGICK_BINARY=magick_path)
-except:
-    pass
-
-# تأمين FFmpeg أوتوماتيكياً
-try:
-    import static_ffmpeg
-    static_ffmpeg.add_paths()
-except:
-    pass
+# التعديل الذهبي: ضبط المحرك يدوياً بدون موديول config المتعب
+if os.name == 'posix': # سيرفر لينكس (Streamlit)
+    os.environ["IMAGEMAGICK_BINARY"] = "convert"
+else: # ويندوز (جهازك)
+    magick_path = r"C:\Program Files\ImageMagick-7.1.1-Q16-HDRI\magick.exe"
+    if os.path.exists(magick_path):
+        os.environ["IMAGEMAGICK_BINARY"] = magick_path
 
 # --- 2. إعداد المجلدات ---
-MEDIA_DIR = "Mediawy_Studio"
+BASE_PATH = os.getcwd()
+MEDIA_DIR = os.path.join(BASE_PATH, "Mediawy_Studio")
 ASSETS_DIR = os.path.join(MEDIA_DIR, "Assets")
 VIDEOS_DIR = os.path.join(MEDIA_DIR, "Videos")
-for d in [ASSETS_DIR, VIDEOS_DIR]: os.makedirs(d, exist_ok=True)
+for d in [ASSETS_DIR, VIDEOS_DIR]: 
+    os.makedirs(d, exist_ok=True)
 
-# --- 3. محرك الرسم (ثبات اللوجو والبنر) ---
+# --- 3. محرك الرسم (ثبات العناصر) ---
 def create_static_layer(size, logo_path, marquee_text):
     img = Image.new("RGBA", size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
@@ -64,24 +53,24 @@ def create_text_clip(size, text, start_t, dur):
     draw.rectangle([size[0]//2-tw//2-20, size[1]//2-th//2-10, size[0]//2+tw//2+20, size[1]//2+th//2+10], fill=(0,0,0,160))
     draw.text((size[0]//2-tw//2, size[1]//2-th//2), text, font=font, fill="yellow")
     
-    # أوامر MoviePy 2.x الحديثة
+    # التوافق مع MoviePy 2.x
     return ImageClip(np.array(img)).with_start(start_t).with_duration(dur).with_position('center')
 
 # --- 4. واجهة المستخدم ---
-st.set_page_config(page_title="Mediawy Pro V22", layout="wide")
-st.title("🎬 Mediawy Studio V22 (The Final Patch)")
+st.set_page_config(page_title="Mediawy Pro V23", layout="wide")
+st.title("🎬 Mediawy Studio V23 (Global Fix)")
 
 with st.sidebar:
-    st.header("⚙️ مركز التحكم")
+    st.header("⚙️ الإعدادات")
     dim = st.selectbox("📏 الأبعاد:", ["9:16 (Shorts)", "16:9 (YouTube)"])
     ai_text = st.text_area("النص:", height=150)
-    user_imgs = st.file_uploader("ارفع الصور", accept_multiple_files=True)
-    logo_file = st.file_uploader("ارفع اللوجو")
+    user_imgs = st.file_uploader("الصور", accept_multiple_files=True)
+    logo_file = st.file_uploader("اللوجو")
 
-# --- 5. الإنتاج ---
+# --- 5. محرك الرندر ---
 if st.button("إطلاق خط الإنتاج 🚀", use_container_width=True):
     if not ai_text or not logo_file:
-        st.error("⚠️ ناقص بيانات (النص واللوجو)!")
+        st.error("⚠️ من فضلك ارفع اللوجو واكتب النص!")
     else:
         try:
             status = st.info("🎙️ جاري التجهيز...")
@@ -90,7 +79,6 @@ if st.button("إطلاق خط الإنتاج 🚀", use_container_width=True):
             voice_clip = AudioFileClip(audio_p)
             total_dur = voice_clip.duration
 
-            # تقسيم الجمل للمزامنة
             sentences = [s.strip() for s in re.split(r'[.؟!،,]+', ai_text) if len(s.strip()) > 2]
             num_clips = len(sentences)
             dur_per_clip = total_dur / num_clips if num_clips > 0 else total_dur
@@ -107,7 +95,7 @@ if st.button("إطلاق خط الإنتاج 🚀", use_container_width=True):
                     img_data = requests.get(f"https://images.unsplash.com/photo-1500000000000?w={w}&h={h}&q=80").content
                     with open(p, "wb") as fo: fo.write(img_data)
                 
-                # استخدامresized و with_duration للنسخة الجديدة
+                # استخدام الأوامر الحديثة
                 c = ImageClip(p).with_duration(dur_per_clip).resized(height=h)
                 img_clips.append(c)
                 sub_clips.append(create_text_clip((w, h), sentence, i*dur_per_clip, dur_per_clip))
@@ -118,14 +106,13 @@ if st.button("إطلاق خط الإنتاج 🚀", use_container_width=True):
             with open(l_p, "wb") as f: f.write(logo_file.getbuffer())
             static_layer = create_static_layer((w, h), l_p, "Mediawy Studio 2026").with_duration(total_dur)
 
-            # تجميع الطبقات
+            # الرندر النهائي
             final_vid = CompositeVideoClip([video_track, static_layer] + sub_clips, size=(w, h)).with_audio(voice_clip)
-            
-            out_p = os.path.join(VIDEOS_DIR, "Final_Result.mp4")
+            out_p = os.path.join(VIDEOS_DIR, "Output.mp4")
             final_vid.write_videofile(out_p, fps=24, codec="libx264")
             
             st.video(out_p)
-            st.success("🔥 مبروك! المكنة اشتغلت أونلاين على بايثون 3.13.")
+            st.success("🔥 المكنة اشتغلت بنسبة 100%!")
             
         except Exception as e:
             st.error(f"⚠️ خطأ: {str(e)}")
