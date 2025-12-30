@@ -97,4 +97,63 @@ with st.sidebar:
     logo_file = st.file_uploader("ارفع اللوجو")
 
 # --- 5. محرك الرندر ---
-if st.button("
+if st.button("🚀 إطلاق خط الإنتاج بالتنسيق الجديد", use_container_width=True):
+    if not (ai_text or user_audio) or not logo_file:
+        st.error("⚠️ يرجى كتابة النص ورفع اللوجو!")
+    else:
+        try:
+            status = st.info("⏳ جاري المونتاج ووضع النصوص في الثلث الأخير...")
+            
+            audio_p = os.path.join(ASSETS_DIR, "v.mp3")
+            if "ElevenLabs" in audio_source:
+                res = requests.post(f"https://api.elevenlabs.io/v1/text-to-speech/{el_voice}", json={"text": ai_text}, headers={"xi-api-key": el_key})
+                with open(audio_p, "wb") as f: f.write(res.content)
+            elif "AI" in audio_source:
+                gTTS(ai_text, lang='ar').save(audio_p)
+            else:
+                with open(audio_p, "wb") as f: f.write(user_audio.getbuffer())
+            
+            voice_clip = AudioFileClip(audio_p)
+            total_dur = voice_clip.duration
+
+            sentences = [s.strip() for s in re.split(r'[.؟!،,]+', ai_text) if len(s.strip()) > 2]
+            if not sentences: sentences = ["Mediawy Studio Production"]
+            dur_per_clip = total_dur / len(sentences)
+
+            h = 1080; w = int(h*9/16) if "9:16" in dim else int(h*16/9)
+            img_clips = []
+            subtitle_clips = []
+
+            for i, sentence in enumerate(sentences):
+                p = os.path.join(ASSETS_DIR, f"i_{i}.jpg")
+                if "أوتوماتيك" in img_mode:
+                    img_data = requests.get(f"https://images.unsplash.com/photo-1500000000000?w={w}&h={h}&q=80").content
+                    with open(p, "wb") as fo: fo.write(img_data)
+                else:
+                    with open(p, "wb") as fo: fo.write(user_imgs[i % len(user_imgs)].getbuffer())
+                
+                # زووم ناعم
+                c = ImageClip(p).with_duration(dur_per_clip).resized(height=h)
+                z = 1.25 if i % 2 == 0 else 0.85
+                c = c.resized(lambda t: 1 + (z-1) * (t / dur_per_clip)).with_crossfadein(0.5)
+                img_clips.append(c)
+                
+                # الترجمة في الثلث الأخير
+                sub = create_word_clip((w, h), sentence, i*dur_per_clip, dur_per_clip)
+                subtitle_clips.append(sub)
+
+            video_track = concatenate_videoclips(img_clips, method="compose")
+            
+            l_p = os.path.join(ASSETS_DIR, "l.png")
+            with open(l_p, "wb") as f: f.write(logo_file.getbuffer())
+            static_layer = create_static_layer((w, h), l_p, marquee_text, True).with_duration(total_dur)
+
+            final_vid = CompositeVideoClip([video_track, static_layer] + subtitle_clips, size=(w, h)).with_audio(voice_clip)
+            
+            out_p = os.path.join(VIDEOS_DIR, "Mediawy_Professional_Layout.mp4")
+            final_vid.write_videofile(out_p, fps=24, codec="libx264")
+            
+            st.video(out_p)
+            st.success("🔥 مبروك! النصوص دلوقتِ في مكانها الاحترافي فوق البنر.")
+            
+        except Exception as e: st.error(f"⚠️ خطأ: {str(e)}")
