@@ -15,7 +15,7 @@ ASSETS_DIR = os.path.join(MEDIA_DIR, "Assets")
 VIDEOS_DIR = os.path.join(MEDIA_DIR, "Videos")
 for d in [ASSETS_DIR, VIDEOS_DIR]: os.makedirs(d, exist_ok=True)
 
-# --- محرك الكتابة (Steel-Safe) ---
+# --- محرك الكتابة Steel-Safe (تجنب خطأ max نهائياً) ---
 def create_word_clip(size, text, start_t, dur):
     clean_text = str(text).strip() if text else "Mediawy"
     img = Image.new("RGBA", size, (0, 0, 0, 0))
@@ -24,7 +24,7 @@ def create_word_clip(size, text, start_t, dur):
     try: font = ImageFont.truetype("arial.ttf", font_size)
     except: font = ImageFont.load_default()
     
-    # حساب يدوي (تجنب max error)
+    # حساب يدوي للأبعاد لضمان الاستقرار
     tw = len(clean_text) * (font_size * 0.6)
     th = font_size * 1.2
     y_pos = int(size[1] * 0.72)
@@ -35,11 +35,11 @@ def create_word_clip(size, text, start_t, dur):
     return ImageClip(np.array(img)).with_start(start_t).with_duration(dur)
 
 # --- واجهة المستخدم (الـ 11 إضافة كاملة) ---
-st.set_page_config(page_title="Mediawy V62", layout="wide")
-st.markdown("<h1 style='text-align:center; color:#FF0000;'>🎬 Mediawy Studio <span style='color:#00E5FF;'>V62 Iron-Proof</span></h1>", unsafe_allow_html=True)
+st.set_page_config(page_title="Mediawy V64", layout="wide")
+st.markdown("<h1 style='text-align:center; color:#FF0000;'>🎬 Mediawy Studio <span style='color:#00E5FF;'>V64 Final Success</span></h1>", unsafe_allow_html=True)
 
 with st.sidebar:
-    st.header("⚙️ مركز التحكم الشامل")
+    st.header("⚙️ مركز التحكم")
     dim = st.selectbox("📏 2- الأبعاد:", ["9:16 (Shorts)", "16:9 (YouTube)"])
     edit_style = st.selectbox("🎭 1- النمط:", ["سينمائي 🎬", "درامي 🎭", "وثائقي 📜"])
     st.divider() # 11- فواصل
@@ -47,15 +47,15 @@ with st.sidebar:
     st.subheader("🎙️ 2. الصوت (بشري/AI/ElevenLabs)")
     audio_source = st.radio("المصدر:", ["AI (GTTS)", "ElevenLabs 💎", "صوت بشري 🎤"])
     ai_text = st.text_area("✍️ النص (حتى 500 كلمة):", height=100)
-    user_audio = st.file_uploader("ارفع صوتك لو اخترت 'بشري'")
+    user_audio = st.file_uploader("ارفع صوتك (لو اخترت 'بشري')")
     if audio_source == "ElevenLabs 💎":
         el_key = st.text_input("📦 API Key", type="password")
         el_voice = st.text_input("📦 Voice ID", value="pNInz6obpgnu9P6ky9M8")
     st.divider()
 
-    st.subheader("🎵 3. الموسيقى الخلفية (6)")
-    bg_music_opt = st.toggle("تفعيل الموسيقى", value=True)
-    custom_bg = st.file_uploader("ارفع موسيقى MP3 (اختياري)")
+    st.subheader("🎵 3. الموسيقى (6- اختيارية من جهازك)")
+    bg_music_opt = st.toggle("تفعيل الموسيقى", value=False) # جعلناها مغلقة افتراضياً للأمان
+    custom_bg = st.file_uploader("ارفع ملف موسيقى MP3 من جهازك")
     duck_vol = st.slider("مستوى الـ Ducking:", 0.05, 0.40, 0.10)
     st.divider()
 
@@ -72,13 +72,13 @@ with st.sidebar:
 # --- محرك الإنتاج ---
 if st.button("🚀 إطلاق الإنتاج الملياري", use_container_width=True):
     try:
-        status = st.info("⏳ جاري المونتاج... تم تأمين مسارات الصوت!")
+        status = st.info("⏳ جاري المونتاج بنظام الملفات المحلية... استقرار 100%")
         
-        # [الصوت الرئيسي]
+        # [1. معالجة الصوت الرئيسي]
         audio_p = os.path.join(ASSETS_DIR, "voice.mp3")
         if audio_source == "صوت بشري 🎤" and user_audio:
             with open(audio_p, "wb") as f: f.write(user_audio.getbuffer())
-        elif audio_source == "ElevenLabs 💎":
+        elif audio_source == "ElevenLabs 💎" and ai_text:
             res = requests.post(f"https://api.elevenlabs.io/v1/text-to-speech/{el_voice}", json={"text": ai_text}, headers={"xi-api-key": el_key})
             with open(audio_p, "wb") as f: f.write(res.content)
         else:
@@ -87,12 +87,13 @@ if st.button("🚀 إطلاق الإنتاج الملياري", use_container_wi
         voice_clip = AudioFileClip(audio_p)
         total_dur = voice_clip.duration
         
-        # [النصوص]
+        # [2. تقسيم المشاهد]
         raw_t = ai_text if ai_text else "Mediawy Studio"
         sentences = [s.strip() for s in re.split(r'[.؟!،,]+', raw_t) if len(s.strip()) > 1]
+        if not sentences: sentences = ["Mediawy Studio Final"]
         dur_per_clip = total_dur / len(sentences)
 
-        # [المشاهد]
+        # [3. بناء المشاهد]
         h = 1080; w = int(h*9/16) if "9:16" in dim else int(h*16/9)
         img_clips = []
         subtitle_clips = []
@@ -114,7 +115,7 @@ if st.button("🚀 إطلاق الإنتاج الملياري", use_container_wi
 
         video_track = concatenate_videoclips(img_clips, method="compose")
 
-        # [الهوية 8, 9]
+        # [4. الهوية 8, 9]
         static_img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
         if logo_file:
             logo = Image.open(logo_file).convert("RGBA").resize((w//6, w//6))
@@ -124,30 +125,23 @@ if st.button("🚀 إطلاق الإنتاج الملياري", use_container_wi
             ImageDraw.Draw(static_img).text((40, h-75), marquee_text, fill="white")
         static_layer = ImageClip(np.array(static_img)).with_duration(total_dur)
 
-        # [6] تأمين الموسيقى (Try-Except Shield)
+        # [5. معالجة الموسيقى - الحل النهائي]
         final_audio = voice_clip.with_volume_scaled(1.2)
-        if bg_music_opt:
-            try:
-                if custom_bg:
-                    bg_p = os.path.join(ASSETS_DIR, "bg.mp3")
-                    with open(bg_p, "wb") as f: f.write(custom_bg.getbuffer())
-                    bg = AudioFileClip(bg_p).with_duration(total_dur).with_volume_scaled(duck_vol)
-                    final_audio = CompositeAudioClip([final_audio, bg])
-                else:
-                    # رابط بديل كلاسيكي مستقر جداً
-                    bg = AudioFileClip("https://www.soundjay.com/nature/sounds/rain-01.mp3").with_duration(total_dur).with_volume_scaled(duck_vol)
-                    final_audio = CompositeAudioClip([final_audio, bg])
-            except:
-                st.warning("⚠️ تعذر تحميل الموسيقى، سيتم الإنتاج بالصوت الرئيسي فقط.")
+        if bg_music_opt and custom_bg:
+            bg_p = os.path.join(ASSETS_DIR, "bg.mp3")
+            with open(bg_p, "wb") as f: f.write(custom_bg.getbuffer())
+            bg = AudioFileClip(bg_p).with_duration(total_dur).with_volume_scaled(duck_vol)
+            final_audio = CompositeAudioClip([final_audio, bg])
 
+        # [6. الرندر النهائي]
         final_vid = CompositeVideoClip([video_track, static_layer] + subtitle_clips, size=(w, h)).with_audio(final_audio)
-        out_p = os.path.join(VIDEOS_DIR, "Mediawy_V62.mp4")
+        out_p = os.path.join(VIDEOS_DIR, "Success_V64.mp4")
         final_vid.write_videofile(out_p, fps=24, codec="libx264")
         st.video(out_p)
         
-        # [SEO 10]
+        # [7. SEO 10]
         st.divider()
         st.subheader("📋 10- SEO")
-        st.code(f"العنوان: {sentences[0][:40]}...\n#Mediawy #AI #Shorts")
+        st.code(f"العنوان: {sentences[0][:40]}...\n#Mediawy #AI #Success")
 
     except Exception as e: st.error(f"⚠️ خطأ: {str(e)}")
