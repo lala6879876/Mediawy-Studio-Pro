@@ -1,6 +1,5 @@
-moviepy>=2.1.1
+moviepy>=2.0.0
 streamlit
 gTTS
 pillow
 requests
-static-ffmpeg
