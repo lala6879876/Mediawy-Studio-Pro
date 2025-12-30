@@ -1,5 +1,5 @@
+moviepy>=2.0.0
 streamlit
-moviepy==1.0.3
 requests
 gtts
 numpy
