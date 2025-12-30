@@ -1,8 +1,8 @@
-streamlit
 moviepy==1.0.3
-openai-whisper
+streamlit
 requests
 gtts
 numpy
 pillow
 static-ffmpeg
+openai-whisper
