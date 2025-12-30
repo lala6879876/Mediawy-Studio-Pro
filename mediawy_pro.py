@@ -35,8 +35,8 @@ def create_word_clip(size, text, start_t, dur):
     return ImageClip(np.array(img)).with_start(start_t).with_duration(dur)
 
 # --- واجهة المستخدم (الـ 11 إضافة كاملة) ---
-st.set_page_config(page_title="Mediawy V61", layout="wide")
-st.markdown("<h1 style='text-align:center; color:#FF0000;'>🎬 Mediawy Studio <span style='color:#00E5FF;'>V61 Iron-Proof</span></h1>", unsafe_allow_html=True)
+st.set_page_config(page_title="Mediawy V62", layout="wide")
+st.markdown("<h1 style='text-align:center; color:#FF0000;'>🎬 Mediawy Studio <span style='color:#00E5FF;'>V62 Iron-Proof</span></h1>", unsafe_allow_html=True)
 
 with st.sidebar:
     st.header("⚙️ مركز التحكم الشامل")
@@ -134,14 +134,14 @@ if st.button("🚀 إطلاق الإنتاج الملياري", use_container_wi
                     bg = AudioFileClip(bg_p).with_duration(total_dur).with_volume_scaled(duck_vol)
                     final_audio = CompositeAudioClip([final_audio, bg])
                 else:
-                    # رابط بديل كلاسيكي
+                    # رابط بديل كلاسيكي مستقر جداً
                     bg = AudioFileClip("https://www.soundjay.com/nature/sounds/rain-01.mp3").with_duration(total_dur).with_volume_scaled(duck_vol)
                     final_audio = CompositeAudioClip([final_audio, bg])
             except:
                 st.warning("⚠️ تعذر تحميل الموسيقى، سيتم الإنتاج بالصوت الرئيسي فقط.")
 
         final_vid = CompositeVideoClip([video_track, static_layer] + subtitle_clips, size=(w, h)).with_audio(final_audio)
-        out_p = os.path.join(VIDEOS_DIR, "Mediawy_V61.mp4")
+        out_p = os.path.join(VIDEOS_DIR, "Mediawy_V62.mp4")
         final_vid.write_videofile(out_p, fps=24, codec="libx264")
         st.video(out_p)
         
