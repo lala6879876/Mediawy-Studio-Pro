@@ -10,7 +10,6 @@ import re
 import moviepy as mp
 from moviepy.video.VideoClip import ImageClip
 from moviepy.audio.io.AudioFileClip import AudioFileClip
-from moviepy.audio.AudioClip import CompositeAudioClip
 from moviepy.video.compositing.concatenate import concatenate_videoclips
 from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
 
@@ -183,3 +182,4 @@ if st.button("🚀 إطلاق خط الإنتاج الشامل", use_container_w
                 st.code(f"#Mediawy_Studio #AI #Shorts #Marketing")
 
         except Exception as e: st.error(f"⚠️ خطأ: {str(e)}")
+
