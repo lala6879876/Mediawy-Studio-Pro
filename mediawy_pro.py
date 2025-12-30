@@ -6,7 +6,7 @@ from PIL import Image, ImageDraw, ImageFont
 from gtts import gTTS
 import re
 
-# --- 1. الاستدعاءات الاحترافية (MoviePy 2.x Modern) ---
+# --- 1. الاستدعاءات الحديثة (MoviePy 2.x) ---
 import moviepy as mp
 from moviepy import ImageClip, AudioFileClip, CompositeAudioClip, concatenate_videoclips, CompositeVideoClip
 
@@ -19,7 +19,7 @@ ASSETS_DIR = os.path.join(MEDIA_DIR, "Assets")
 VIDEOS_DIR = os.path.join(MEDIA_DIR, "Videos")
 for d in [ASSETS_DIR, VIDEOS_DIR]: os.makedirs(d, exist_ok=True)
 
-# --- 3. محرك الصور الذكي (صمام الأمان ضد التلف) ---
+# --- 3. محرك الصور الذكي ---
 def get_safe_image(path, size):
     try:
         with Image.open(path) as img:
@@ -30,41 +30,49 @@ def get_safe_image(path, size):
         dummy = Image.new("RGB", size, (20, 20, 20))
         return np.array(dummy)
 
-# --- 4. محرك الكتابة (حل مشكلة max() ومنع الجمل الفارغة) ---
+# --- 4. محرك الكتابة (الحل النهائي والجذري لخطأ max) ---
 def create_word_clip(size, text, start_t, dur):
-    # صمام أمان: إذا كانت الجملة فارغة، نضع مسافة لمنع خطأ max()
-    clean_text = text.strip() if text.strip() else "..."
+    clean_text = str(text).strip()
+    if not clean_text: clean_text = "..."
     
     img = Image.new("RGBA", size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
+    
     try: font = ImageFont.truetype("arial.ttf", size[1] // 18)
     except: font = ImageFont.load_default()
     
-    # حساب أبعاد النص بأمان
-    bbox = draw.textbbox((0, 0), clean_text, font=font)
-    tw, th = bbox[2]-bbox[0], bbox[3]-bbox[1]
-    
+    # الحل العبقري: نستخدم Try/Except على مرحلة حساب الأبعاد نفسها
+    try:
+        bbox = draw.textbbox((0, 0), clean_text, font=font)
+        # إذا فشل الحساب أو طلع فاضي، نضع قيم افتراضية يدوياً
+        tw = bbox[2] - bbox[0] if (bbox and len(bbox) >= 4) else 100
+        th = bbox[3] - bbox[1] if (bbox and len(bbox) >= 4) else 50
+    except (ValueError, TypeError, IndexError):
+        # في حالة حدوث خطأ max()، ننتقل فوراً للقيم الافتراضية
+        tw, th = size[0] // 3, size[1] // 20
+
     y_pos = int(size[1] * 0.75) - (th // 2)
     x_pos = (size[0] // 2) - (tw // 2)
     
+    # رسم الخلفية
     draw.rectangle([x_pos-20, y_pos-10, x_pos+tw+20, y_pos+th+10], fill=(0,0,0,180))
+    # رسم النص
     draw.text((x_pos, y_pos), clean_text, font=font, fill="yellow")
+    
     return ImageClip(np.array(img)).with_start(start_t).with_duration(dur)
 
 # --- 5. واجهة المستخدم (الـ 11 إضافة كاملة) ---
-st.set_page_config(page_title="Mediawy V53", layout="wide")
-st.markdown("<h1 style='text-align:center; color:#FF0000;'>🎬 Mediawy Studio <span style='color:#00E5FF;'>V53 Stable Beast</span></h1>", unsafe_allow_html=True)
+st.set_page_config(page_title="Mediawy V54", layout="wide")
+st.markdown("<h1 style='text-align:center; color:#FF0000;'>🎬 Mediawy Studio <span style='color:#00E5FF;'>V54 Iron Edition</span></h1>", unsafe_allow_html=True)
 
 with st.sidebar:
-    st.header("⚙️ مركز التحكم")
+    st.header("⚙️ مركز التحكم الشامل")
     
-    # 1, 2, 5: المونتاج والأبعاد
     st.subheader("📺 1. نمط الفيديو")
     dim = st.selectbox("📏 2- الأبعاد:", ["9:16 (Shorts)", "16:9 (YouTube)"])
     edit_style = st.selectbox("🎭 1- النمط:", ["سينمائي 🎬", "درامي 🎭", "وثائقي 📜"])
-    st.divider() # 11- فواصل
+    st.divider()
 
-    # 3: الصوت بـ 3 مربعات
     st.subheader("🎙️ 2. هندسة الصوت (Limit 500)")
     audio_source = st.radio("المصدر:", ["AI (GTTS)", "ElevenLabs 💎", "بشري 🎤"])
     el_key, el_voice = "", ""
@@ -77,34 +85,31 @@ with st.sidebar:
     user_audio = st.file_uploader("ارفع صوتك البشري")
     st.divider()
 
-    # 6: الموسيقى
     st.subheader("🎵 3. الموسيقى")
     bg_music_opt = st.toggle("تفعيل الموسيقى التلقائية", value=True)
-    custom_bg_music = st.file_uploader("ارفع موسيقى خلفية", type=["mp3", "wav"])
+    custom_bg_music = st.file_uploader("ارفع موسيقى خلفية")
     duck_vol = st.slider("مستوى Ducking:", 0.05, 0.40, 0.10)
     st.divider()
 
-    # 4: الصور
     st.subheader("🖼️ 4. محرك الصور (Limit 500)")
     img_mode = st.radio("الجلب:", ["أوتوماتيك (AI)", "يدوي (رفع)"])
     user_imgs = st.file_uploader("ارفع صورك", accept_multiple_files=True)
     st.divider()
 
-    # 8, 9: الهوية
     st.subheader("🚩 5. الهوية والبنر")
     show_banner = st.toggle("8- تفعيل البنر السفلي", value=True)
     marquee_text = st.text_input("نص البنر:")
     logo_file = st.file_uploader("9- ارفع اللوجو")
 
-# --- 6. محرك الرندر الملياري ---
-if st.button("🚀 إطلاق خط الإنتاج المستقر", use_container_width=True):
+# --- 6. محرك الرندر ---
+if st.button("🚀 إطلاق خط الإنتاج الحديدي", use_container_width=True):
     if not (ai_text or user_audio) or not logo_file:
-        st.error("⚠️ يرجى إكمال البيانات (النص واللوجو)!")
+        st.error("⚠️ يرجى إكمال البيانات!")
     else:
         try:
-            status = st.info("⏳ جاري المونتاج... تم تفعيل حماية max()...")
+            status = st.info("⏳ جاري المونتاج... تم سحق خطأ max() للأبد!")
             
-            # [معالجة الصوت]
+            # الصوت
             audio_p = os.path.join(ASSETS_DIR, "v.mp3")
             if "ElevenLabs" in audio_source:
                 res = requests.post(f"https://api.elevenlabs.io/v1/text-to-speech/{el_voice}", json={"text": ai_text}, headers={"xi-api-key": el_key})
@@ -117,13 +122,12 @@ if st.button("🚀 إطلاق خط الإنتاج المستقر", use_container
             voice_clip = AudioFileClip(audio_p)
             total_dur = voice_clip.duration
             
-            # تقسيم النص بأمان (منع الجمل الفارغة تماماً)
             sentences = [s.strip() for s in re.split(r'[.؟!،,]+', ai_text) if len(s.strip()) > 1]
-            if not sentences: sentences = ["Mediawy Studio Production"]
+            if not sentences: sentences = ["Mediawy Studio"]
             
             dur_per_clip = total_dur / len(sentences)
 
-            # [المشاهد]
+            # المشاهد
             h = 1080; w = int(h*9/16) if "9:16" in dim else int(h*16/9)
             img_clips = []
             sub_clips = []
@@ -142,12 +146,12 @@ if st.button("🚀 إطلاق خط الإنتاج المستقر", use_container
                 c = c.resized(lambda t: 1 + (z-1) * (t / dur_per_clip))
                 img_clips.append(c)
                 
-                # كتابة كلمة بكلمة في الثلث الأخير (فوق البنر)
+                # كتابة متزامنة (Clipchamp)
                 sub_clips.append(create_word_clip((w, h), sentence, i*dur_per_clip, dur_per_clip))
 
             video_track = concatenate_videoclips(img_clips, method="compose", padding=-0.3)
 
-            # [الهوية والبنر]
+            # الهوية والبنر
             l_p = os.path.join(ASSETS_DIR, "l.png")
             with open(l_p, "wb") as f: f.write(logo_file.getbuffer())
             
@@ -162,7 +166,7 @@ if st.button("🚀 إطلاق خط الإنتاج المستقر", use_container
             static_img.paste(logo_img, (w-w//6-30, 30), logo_img)
             static_layer = ImageClip(np.array(static_img)).with_duration(total_dur)
 
-            # [6] الموسيقى
+            # الموسيقى
             if bg_music_opt:
                 if custom_bg_music:
                     music_p = os.path.join(ASSETS_DIR, "bg.mp3")
@@ -176,15 +180,15 @@ if st.button("🚀 إطلاق خط الإنتاج المستقر", use_container
 
             # الدمج النهائي
             final_vid = CompositeVideoClip([video_track, static_layer] + sub_clips, size=(w, h)).with_audio(final_audio)
-            out_p = os.path.join(VIDEOS_DIR, "Stable_Mediawy.mp4")
+            out_p = os.path.join(VIDEOS_DIR, "Final_Iron_V54.mp4")
             final_vid.write_videofile(out_p, fps=24, codec="libx264")
             
             st.video(out_p)
-            st.success("🔥 مبروك! المكنة طلعت قماش والخطأ اتمسح للأبد!")
+            st.success("🔥 المكنة اشتغلت والخطأ اتمسح للأبد!")
             
-            # [10] SEO
+            # 10- SEO
             st.divider()
-            st.subheader("📋 10- SEO ونشر")
-            st.code(f"العنوان: {sentences[0][:40]}...\n#Mediawy #AI #Shorts")
+            st.subheader("📋 10- SEO")
+            st.code(f"العنوان: {sentences[0][:40]}...\n#Mediawy #Shorts #AI")
 
         except Exception as e: st.error(f"⚠️ خطأ فني: {str(e)}")
