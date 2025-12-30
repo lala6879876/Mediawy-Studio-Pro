@@ -5,4 +5,3 @@ gtts
 numpy
 pillow
 static-ffmpeg
-openai-whisper
