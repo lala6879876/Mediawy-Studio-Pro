@@ -6,16 +6,11 @@ from PIL import Image, ImageDraw, ImageFont
 from gtts import gTTS
 import re
 
-# --- 1. الاستدعاء الحديث لـ MoviePy 2.x (بدون أي موديولات فرعية تسبب أخطاء) ---
+# --- 1. الاستدعاء الاحترافي لـ MoviePy 2.x (تجنب فخ المسارات الفرعية) ---
 import moviepy
-from moviepy.video.VideoClip import ImageClip
-from moviepy.audio.io.AudioFileClip import AudioFileClip
-from moviepy.audio.AudioClip import CompositeAudioClip
-from moviepy.video.compositing.concatenate import concatenate_videoclips
-from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
+from moviepy import ImageClip, AudioFileClip, CompositeAudioClip, concatenate_videoclips, CompositeVideoClip
 
-# التعديل الملياري: ضبط المحرك يدوياً بدون استدعاء موديول config المفقود
-# السيرفر بيفهم المسار ده أوتوماتيكياً لما نحطه في الـ Environment
+# التعديل الملياري: ضبط المحرك يدوياً بدون موديولات فرعية
 if os.name == 'posix':  # سيرفر Streamlit (Linux)
     os.environ["IMAGEMAGICK_BINARY"] = "/usr/bin/convert"
 else:  # جهازك الشخصي (Windows)
@@ -31,7 +26,7 @@ VIDEOS_DIR = os.path.join(MEDIA_DIR, "Videos")
 for d in [ASSETS_DIR, VIDEOS_DIR]: 
     os.makedirs(d, exist_ok=True)
 
-# --- 3. محرك الرسم (ثبات اللوجو والبنر) ---
+# --- 3. محرك الرسم (ثبات العناصر) ---
 def create_static_layer(size, logo_path, marquee_text):
     img = Image.new("RGBA", size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
@@ -59,11 +54,12 @@ def create_text_clip(size, text, start_t, dur):
                     size[0]//2+tw//2+20, size[1]//2+th//2+10], fill=(0,0,0,160))
     draw.text((size[0]//2-tw//2, size[1]//2-th//2), text, font=font, fill="yellow")
     
+    # التوافق مع MoviePy 2.x (with_start & with_duration)
     return ImageClip(np.array(img)).with_start(start_t).with_duration(dur).with_position('center')
 
 # --- 4. واجهة المستخدم ---
-st.set_page_config(page_title="Mediawy Pro V30", layout="wide")
-st.title("🎬 Mediawy Studio V30 - The Final Clean Build")
+st.set_page_config(page_title="Mediawy Pro V31", layout="wide")
+st.title("🎬 Mediawy Studio V31 - Path Fixed")
 
 with st.sidebar:
     st.header("⚙️ مركز التحكم")
@@ -85,6 +81,7 @@ if st.button("إطلاق خط الإنتاج 🚀", use_container_width=True):
             voice_clip = AudioFileClip(audio_p)
             total_dur = voice_clip.duration
 
+            # تحليل الجمل للمزامنة
             sentences = [s.strip() for s in re.split(r'[.؟!،,]+', ai_text) if len(s.strip()) > 2]
             num_clips = len(sentences)
             dur_per_clip = total_dur / num_clips if num_clips > 0 else total_dur
@@ -101,6 +98,7 @@ if st.button("إطلاق خط الإنتاج 🚀", use_container_width=True):
                     img_data = requests.get(f"https://images.unsplash.com/photo-1500000000000?w={w}&h={h}&q=80").content
                     with open(p, "wb") as fo: fo.write(img_data)
                 
+                # استخدامresized و with_duration للنسخة الجديدة
                 c = ImageClip(p).with_duration(dur_per_clip).resized(height=h)
                 img_clips.append(c)
                 sub_clips.append(create_text_clip((w, h), sentence, i*dur_per_clip, dur_per_clip))
@@ -111,12 +109,13 @@ if st.button("إطلاق خط الإنتاج 🚀", use_container_width=True):
             with open(l_p, "wb") as f: f.write(logo_file.getbuffer())
             static_layer = create_static_layer((w, h), l_p, "Mediawy Studio 2026").with_duration(total_dur)
 
+            # تجميع كل الطبقات
             final_vid = CompositeVideoClip([video_track, static_layer] + sub_clips, size=(w, h)).with_audio(voice_clip)
-            out_p = os.path.join(VIDEOS_DIR, "Mediawy_Final.mp4")
+            out_p = os.path.join(VIDEOS_DIR, "Final_Mediawy.mp4")
             
             final_vid.write_videofile(out_p, fps=24, codec="libx264")
             st.video(out_p)
-            st.success("🔥 مبروك! المكنة طلعت قماش أونلاين.")
+            st.success("🔥 مبروك! المكنة اشتغلت أونلاين رسمياً.")
             
         except Exception as e:
             st.error(f"⚠️ خطأ أثناء الإنتاج: {str(e)}")
