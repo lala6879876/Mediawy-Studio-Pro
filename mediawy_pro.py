@@ -6,7 +6,7 @@ from gtts import gTTS
 import moviepy as mp
 from moviepy import ImageClip, AudioFileClip, CompositeAudioClip, concatenate_videoclips, CompositeVideoClip, vfx
 
-# 1- إعداد البيئة (11- فواصل الأداة)
+# 1- إعداد البيئة والمجلدات (11- فواصل الأداة)
 if os.name == 'posix': os.environ["IMAGEMAGICK_BINARY"] = "/usr/bin/convert"
 MEDIA_DIR = "Mediawy_Studio"
 ASSETS_DIR = os.path.join(MEDIA_DIR, "Assets")
@@ -43,8 +43,8 @@ def create_subtitle(size, text, start_t, dur):
     return ImageClip(np.array(img)).with_start(start_t).with_duration(dur)
 
 # --- واجهة المستخدم (تثبيت الـ 11 إضافة) ---
-st.set_page_config(page_title="Mediawy V79", layout="wide")
-st.markdown("<h1 style='text-align:center; color:#00E5FF;'>🎬 Mediawy Studio V79 Master</h1>", unsafe_allow_html=True)
+st.set_page_config(page_title="Mediawy V80", layout="wide")
+st.markdown("<h1 style='text-align:center; color:#00E5FF;'>🎬 Mediawy Studio V80 Master</h1>", unsafe_allow_html=True)
 
 with st.sidebar:
     st.header("⚙️ لوحة التحكم")
@@ -52,26 +52,22 @@ with st.sidebar:
     edit_style = st.selectbox("🎭 1- النمط:", ["سينمائي 🎬", "درامي 🎭"])
     st.divider()
 
-    # 3- رفع الصوت البشري (تم الإصلاح)
     st.subheader("🎙️ 3- هندسة الصوت")
-    audio_src = st.radio("المصدر:", ["بشري 🎤", "AI (GTTS) 🤖", "ElevenLabs 💎"])
+    audio_src = st.radio("المصدر:", ["بشري 🎤", "AI (GTTS) 🤖"])
     u_voice = st.file_uploader("📁 ارفع تعليقك الصوتي") if "بشري" in audio_src else None
-    ai_text = st.text_area("✍️ النص (للترجمة والمزامنة):", value="الإصرار هو ما يجعل المستحيل ممكناً.")
+    ai_text = st.text_area("✍️ النص (للترجمة والمزامنة):", value="الإبداع لا حدود له مع ميدياوي استوديو.")
     st.divider()
 
-    # 6- الموسيقى الخلفية
     st.subheader("🎵 6- موسيقى خلفية")
     bg_music_opt = st.toggle("تفعيل الموسيقى", value=True)
     u_music = st.file_uploader("📁 ارفع موسيقى MP3")
     st.divider()
 
-    # 4- الصور (رفع أو أوتو)
     st.subheader("🖼️ 4- الصور")
     img_mode = st.radio("النمط:", ["أوتوماتيك", "رفع يدوي"])
     u_imgs = st.file_uploader("📁 ارفع صورك", accept_multiple_files=True)
     st.divider()
 
-    # 8, 9- الهوية
     show_banner = st.toggle("8- بنر سفلي", value=True)
     logo_file = st.file_uploader("9- اللوجو")
 
@@ -80,7 +76,6 @@ if st.button("🚀 إطلاق رندر الإنجاز الملياري"):
     try:
         status = st.info("⏳ جاري المونتاج... تطبيق الـ 11 إضافة...")
         
-        # [معالجة الصوت 3]
         audio_p = os.path.join(ASSETS_DIR, "v.mp3")
         if audio_src == "بشري 🎤" and u_voice:
             with open(audio_p, "wb") as f: f.write(u_voice.getbuffer())
@@ -89,7 +84,6 @@ if st.button("🚀 إطلاق رندر الإنجاز الملياري"):
         voice = AudioFileClip(audio_p)
         total_dur = voice.duration
 
-        # [الموسيقى 6]
         final_audio = voice
         if bg_music_opt and u_music:
             m_p = os.path.join(ASSETS_DIR, "m.mp3")
@@ -97,7 +91,6 @@ if st.button("🚀 إطلاق رندر الإنجاز الملياري"):
             bg = AudioFileClip(m_p).subclipped(0, total_dur).with_effects([vfx.AudioVolumize(0.15)])
             final_audio = CompositeAudioClip([voice, bg])
 
-        # [بناء المشاهد 1, 4, 5, 7]
         sentences = [s.strip() for s in re.split(r'[.؟!،]+', ai_text) if len(s.strip()) > 1]
         dur_scene = total_dur / len(sentences)
         h = 1080; w = int(h*9/16) if "9:16" in dim else int(h*16/9)
@@ -105,25 +98,20 @@ if st.button("🚀 إطلاق رندر الإنجاز الملياري"):
         img_clips = []
         sub_clips = []
 
-        [Image of a professional video editing timeline showing layered audio tracks for voice and background music, contextual video clips with zoom indicators, and overlay tracks for logos and subtitles]
-
         for i, sent in enumerate(sentences):
             p = os.path.join(ASSETS_DIR, f"i_{i}.jpg")
             if img_mode == "أوتوماتيك": get_verified_image(sent, p, (w, h), i)
             else: 
                 with open(p, "wb") as f: f.write(u_imgs[i % len(u_imgs)].getbuffer())
             
-            # الزووم والنقلات 1, 5
             c = ImageClip(p).with_duration(dur_scene).crossfadein(0.5)
             z = 1.15 if i % 2 == 0 else 0.85
             c = c.resized(lambda t: 1 + (z-1) * (t / dur_scene))
             img_clips.append(c)
-            # 7- نصوص الترجمة
             sub_clips.append(create_subtitle((w, h), sent, i*dur_scene, dur_scene))
 
         video_track = concatenate_videoclips(img_clips, method="compose")
 
-        # [8, 9- الهوية]
         overlay = Image.new("RGBA", (w, h), (0, 0, 0, 0))
         if logo_file:
             logo = Image.open(logo_file).convert("RGBA").resize((w//6, w//6))
@@ -131,15 +119,14 @@ if st.button("🚀 إطلاق رندر الإنجاز الملياري"):
         if show_banner:
             draw = ImageDraw.Draw(overlay)
             draw.rectangle([0, h-100, w, h], fill=(0,0,0,210))
-            draw.text((40, h-75), "Mediawy Studio - Powered by AI", fill="white")
+            draw.text((40, h-75), "Mediawy Studio - Professional AI", fill="white")
         static_layer = ImageClip(np.array(overlay)).with_duration(total_dur)
 
         final = CompositeVideoClip([video_track, static_layer] + sub_clips, size=(w, h)).with_audio(final_audio)
-        out_f = os.path.join(VIDEOS_DIR, "Success_V79.mp4")
+        out_f = os.path.join(VIDEOS_DIR, "Success_V80.mp4")
         final.write_videofile(out_f, fps=24, codec="libx264")
         st.video(out_f)
         
-        # 10- SEO
         st.divider()
         st.code(f"Title: {sentences[0][:40]}\n#Mediawy #AI #Success")
 
