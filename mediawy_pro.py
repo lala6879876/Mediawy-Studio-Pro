@@ -6,13 +6,17 @@ from PIL import Image, ImageDraw, ImageFont
 from gtts import gTTS
 import re
 
-# --- 1. الاستدعاء الذكي لـ MoviePy 2.0+ ---
+# --- 1. الاستدعاء الحديث لـ MoviePy 2.0+ ---
 import moviepy as mp
-from moviepy import ImageClip, AudioFileClip, CompositeAudioClip, concatenate_videoclips, CompositeVideoClip
+from moviepy.video.VideoClip import ImageClip
+from moviepy.audio.io.AudioFileClip import AudioFileClip
+from moviepy.audio.AudioClip import CompositeAudioClip
+from moviepy.video.compositing.concatenate import concatenate_videoclips
+from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
 
-# التعديل الذهبي: ضبط المحرك يدوياً بدون موديول config المتعب
+# التعديل الذهبي: ضبط المحرك بدون موديول config المتعب
 if os.name == 'posix': # سيرفر لينكس (Streamlit)
-    os.environ["IMAGEMAGICK_BINARY"] = "convert"
+    os.environ["IMAGEMAGICK_BINARY"] = "/usr/bin/convert"
 else: # ويندوز (جهازك)
     magick_path = r"C:\Program Files\ImageMagick-7.1.1-Q16-HDRI\magick.exe"
     if os.path.exists(magick_path):
@@ -26,7 +30,7 @@ VIDEOS_DIR = os.path.join(MEDIA_DIR, "Videos")
 for d in [ASSETS_DIR, VIDEOS_DIR]: 
     os.makedirs(d, exist_ok=True)
 
-# --- 3. محرك الرسم (ثبات العناصر) ---
+# --- 3. دوال الرسم (ثبات العناصر) ---
 def create_static_layer(size, logo_path, marquee_text):
     img = Image.new("RGBA", size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
@@ -50,30 +54,31 @@ def create_text_clip(size, text, start_t, dur):
     
     bbox = draw.textbbox((0, 0), text, font=font)
     tw, th = bbox[2]-bbox[0], bbox[3]-bbox[1]
-    draw.rectangle([size[0]//2-tw//2-20, size[1]//2-th//2-10, size[0]//2+tw//2+20, size[1]//2+th//2+10], fill=(0,0,0,160))
+    draw.rectangle([size[0]//2-tw//2-20, size[1]//2-th//2-10, 
+                    size[0]//2+tw//2+20, size[1]//2+th//2+10], fill=(0,0,0,160))
     draw.text((size[0]//2-tw//2, size[1]//2-th//2), text, font=font, fill="yellow")
     
-    # التوافق مع MoviePy 2.x
     return ImageClip(np.array(img)).with_start(start_t).with_duration(dur).with_position('center')
 
 # --- 4. واجهة المستخدم ---
-st.set_page_config(page_title="Mediawy Pro V23", layout="wide")
-st.title("🎬 Mediawy Studio V23 (Global Fix)")
+st.set_page_config(page_title="Mediawy Pro V24", layout="wide")
+st.title("🎬 Mediawy Studio V24 (Final System Fix)")
 
 with st.sidebar:
-    st.header("⚙️ الإعدادات")
+    st.header("⚙️ مركز التحكم")
     dim = st.selectbox("📏 الأبعاد:", ["9:16 (Shorts)", "16:9 (YouTube)"])
     ai_text = st.text_area("النص:", height=150)
     user_imgs = st.file_uploader("الصور", accept_multiple_files=True)
     logo_file = st.file_uploader("اللوجو")
 
-# --- 5. محرك الرندر ---
+# --- 5. محرك الإنتاج ---
 if st.button("إطلاق خط الإنتاج 🚀", use_container_width=True):
     if not ai_text or not logo_file:
-        st.error("⚠️ من فضلك ارفع اللوجو واكتب النص!")
+        st.error("⚠️ لازم ترفع اللوجو وتكتب النص!")
     else:
+        status = st.empty()
         try:
-            status = st.info("🎙️ جاري التجهيز...")
+            status.info("🎙️ جاري تجهيز الصوت...")
             audio_p = os.path.join(ASSETS_DIR, "v.mp3")
             gTTS(ai_text, lang='ar').save(audio_p)
             voice_clip = AudioFileClip(audio_p)
@@ -92,10 +97,10 @@ if st.button("إطلاق خط الإنتاج 🚀", use_container_width=True):
                 if user_imgs:
                     with open(p, "wb") as fo: fo.write(user_imgs[i % len(user_imgs)].getbuffer())
                 else:
+                    # سحب صورة افتراضية
                     img_data = requests.get(f"https://images.unsplash.com/photo-1500000000000?w={w}&h={h}&q=80").content
                     with open(p, "wb") as fo: fo.write(img_data)
                 
-                # استخدام الأوامر الحديثة
                 c = ImageClip(p).with_duration(dur_per_clip).resized(height=h)
                 img_clips.append(c)
                 sub_clips.append(create_text_clip((w, h), sentence, i*dur_per_clip, dur_per_clip))
@@ -108,11 +113,13 @@ if st.button("إطلاق خط الإنتاج 🚀", use_container_width=True):
 
             # الرندر النهائي
             final_vid = CompositeVideoClip([video_track, static_layer] + sub_clips, size=(w, h)).with_audio(voice_clip)
-            out_p = os.path.join(VIDEOS_DIR, "Output.mp4")
-            final_vid.write_videofile(out_p, fps=24, codec="libx264")
+            out_p = os.path.join(VIDEOS_DIR, "Mediawy_Final.mp4")
+            
+            # الرندر بجودة عالية
+            final_vid.write_videofile(out_p, fps=24, codec="libx264", audio_codec="aac")
             
             st.video(out_p)
-            st.success("🔥 المكنة اشتغلت بنسبة 100%!")
+            st.success("🔥 المكنة دارت أونلاين بكامل عتادها!")
             
         except Exception as e:
             st.error(f"⚠️ خطأ: {str(e)}")
