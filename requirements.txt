@@ -3,4 +3,5 @@ streamlit
 gTTS
 pillow
 requests
-
+imageio[pyav]
+imageio[opencv]
