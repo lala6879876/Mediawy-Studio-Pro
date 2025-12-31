@@ -5,149 +5,122 @@ from PIL import Image, ImageDraw, ImageFont
 from gtts import gTTS
 from moviepy import ImageClip, AudioFileClip, CompositeAudioClip, concatenate_videoclips, CompositeVideoClip, vfx
 
-# --- 1. إعداد المسارات الفنية ---
-MEDIA_DIR = "Mediawy_Professional_Studio"
+# --- 1. إعداد البيئة ---
+MEDIA_DIR = "Mediawy_Final_Studio"
 ASSETS_DIR = os.path.join(MEDIA_DIR, "Assets")
 VIDEOS_DIR = os.path.join(MEDIA_DIR, "Videos")
 for d in [ASSETS_DIR, VIDEOS_DIR]: os.makedirs(d, exist_ok=True)
 
-# --- محرك الصور الضامن (منع أخطاء Identify Image) ---
-def get_guaranteed_image(query, path, size):
+# --- دالة صنع البنر الاحترافي ---
+def create_pro_banner(size, text):
     w, h = size
-    # تنظيف كلمات البحث لضمان سياق سينمائي/وثائقي
-    q = "+".join(re.findall(r'\w+', query)[:3])
-    url = f"https://picsum.photos/seed/{random.randint(1,1000)}/{w}/{h}"
-    try:
-        resp = requests.get(url, timeout=12)
-        if resp.status_code == 200:
-            img = Image.open(io.BytesIO(resp.content)).convert("RGB").resize(size)
-            img.save(path, "JPEG")
-            return True
-    except:
-        pass
-    # صورة طوارئ بيضاء احترافية في حال فشل النت
-    img = Image.new("RGB", size, (250, 250, 250))
-    img.save(path, "JPEG")
-    return True
+    banner_h = int(h * 0.1) # البنر بياخد 10% من طول الفيديو
+    banner = Image.new("RGBA", (w, banner_h), (0, 0, 0, 160)) # شفافية سوداء سينمائية
+    draw = ImageDraw.Draw(banner)
+    try: font = ImageFont.truetype("arial.ttf", banner_h // 2)
+    except: font = ImageFont.load_default()
+    
+    # رسم خط علوي للبنر ليعطي شكل فني
+    draw.line([(0, 0), (w, 0)], fill="#007BFF", width=3)
+    draw.text((w // 2, banner_h // 2), text, font=font, fill="white", anchor="mm")
+    
+    path = os.path.join(ASSETS_DIR, "banner_live.png")
+    banner.save(path)
+    return path
 
-# --- تصميم الواجهة (الخلفية البيضاء والتنسيق الجانبي) ---
-st.set_page_config(page_title="Mediawy V106 Master", layout="wide")
+# --- واجهة المستخدم البيضاء بالكامل ---
+st.set_page_config(page_title="Mediawy V107 Pro", layout="wide")
 st.markdown("""
     <style>
     .stApp { background-color: #FFFFFF; color: #1e1e1e; }
-    .sidebar-content { background-color: #fcfcfc; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; }
-    .render-zone { border: 3px solid #007BFF; padding: 30px; border-radius: 20px; background-color: #f8f9fa; }
-    h2 { color: #007BFF !important; font-size: 1.3rem; border-bottom: 2px solid #007BFF; padding-bottom: 5px; }
-    .stDivider { margin: 20px 0; }
+    .render-zone { border: 2px solid #007BFF; padding: 20px; border-radius: 15px; background-color: #f9f9f9; }
+    h2 { color: #007BFF !important; border-bottom: 2px solid #007BFF; }
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1 style='text-align:center; color:#007BFF;'>🎬 Mediawy Studio V106 - White Dashboard</h1>", unsafe_allow_html=True)
+col_right, col_mid, col_left = st.columns([1, 1.8, 1])
 
-# تقسيم الواجهة: إضافات يمين - إنتاج منتصف - إضافات يسار
-col_right, col_mid, col_left = st.columns([1, 1.6, 1])
-
-# --- الجانب الأيمن: الأبعاد والصوت (الـ 3 جداول) ---
 with col_right:
-    st.markdown("## 📏 1. الأبعاد والمنصة")
-    platform = st.selectbox("المقاس:", ["Shorts/TikTok/Reels (9:16)", "YouTube Standard (16:9)", "Facebook/Post (1:1)"])
-    st.divider() # فواصل احترافية
-
+    st.markdown("## 📏 1. الأبعاد")
+    platform = st.selectbox("المقاس:", ["Shorts (9:16)", "YouTube (16:9)", "Post (1:1)"])
+    st.divider()
     st.markdown("## 🎙️ 2. هندسة الصوت")
-    v_src = st.radio("مصدر الصوت:", ["AI 🤖", "ElevenLabs 💎", "بشري 🎤"])
-    
-    voice_text = ""
-    if v_src == "AI 🤖":
-        voice_text = st.text_area("✍️ جدول النص (AI):", placeholder="ادخل النص هنا...")
-    elif v_src == "ElevenLabs 💎":
-        el_key = st.text_input("🔑 ElevenLabs API Key:")
-        el_model = st.text_input("📦 Model ID:", value="eleven_multilingual_v2")
-        voice_text = st.text_area("✍️ جدول نص ElevenLabs:")
-    else:
-        u_voice = st.file_uploader("📥 أيقونة تحميل الصوت البشري:")
-        voice_text = st.text_area("✍️ النص (للمزامنة والترجمة):")
+    v_src = st.radio("المصدر:", ["AI 🤖", "ElevenLabs 💎", "بشري 🎤"])
+    voice_text = st.text_area("✍️ جدول النص:")
 
-# --- الجانب الأيسر: الصور والموسيقى والهوية ---
 with col_left:
-    st.markdown("## 🎭 3. نمط المونتاج")
-    m_style = st.selectbox("الروح العامة:", ["سينمائي 🎬", "درامي 🎭", "وثائقي 🎞️"])
+    st.markdown("## 🎭 3. النمط")
+    m_style = st.selectbox("الروح:", ["سينمائي 🎬", "درامي 🎭", "وثائقي 🎞️"])
     st.divider()
-
-    st.markdown("## 🖼️ 4. محرك الصور")
-    img_opt = st.radio("طريقة الجلب:", ["أوتوماتيك (سياقي)", "يدوي (رفع)"])
-    if img_opt == "يدوي (رفع)":
-        u_imgs = st.file_uploader("📁 أيقونة تحميل الصور:", accept_multiple_files=True)
-    else:
-        img_keywords = st.text_input("🔍 مربع الكلمات المفتاحية للصور:")
+    st.markdown("## 🎨 4. الهوية (اللوجو والبنر)")
+    use_logo = st.toggle("إضافة لوجو (سيظهر بالأعلى)")
+    u_logo = st.file_uploader("📥 ارفع اللوجو هنا") if use_logo else None
+    
+    use_banner = st.toggle("تفعيل البنر السفلي")
+    banner_text = st.text_input("نص البنر (اختياري):", value="Mediawy AI Studio") if use_banner else ""
     st.divider()
+    img_opt = st.radio("الصور:", ["أوتو", "يدوي"])
+    u_imgs = st.file_uploader("ارفع الصور", accept_multiple_files=True) if img_opt == "يدوي" else None
 
-    st.markdown("## 🎨 5. الهوية والترجمة")
-    show_subs = st.toggle("🔤 ترجمة كلمة بكلمة", value=True)
-    show_banner = st.toggle("🏁 بنر سفلي احترافي")
-    use_logo = st.toggle("🖼️ إضافة لوجو")
-    if use_logo:
-        u_logo = st.file_uploader("🖼️ أيقونة تحميل اللوجو:")
-
-# --- العمود الأوسط: شاشة الإنتاج والـ SEO ---
 with col_mid:
     st.markdown("<div class='render-zone'>", unsafe_allow_html=True)
-    st.subheader("📺 شاشة الإنتاج المركزي")
+    st.subheader("📺 منطقة الإنتاج")
     
-    
+    if st.button("🚀 رندر الفيديو (إصلاح اللوجو)"):
+        try:
+            with st.spinner("جاري دمج الطبقات (الصور + اللوجو + البنر)..."):
+                # معالجة الصوت
+                v_p = os.path.join(ASSETS_DIR, "v.mp3")
+                gTTS(voice_text, lang='ar').save(v_p)
+                voice = AudioFileClip(v_p)
+                
+                # الأبعاد
+                if "9:16" in platform: w, h = 1080, 1920
+                else: w, h = 1920, 1080
 
-    if st.button("🚀 إطلاق رندر الإنجاز النهائي"):
-        if not voice_text:
-            st.error("أدخل النص في جدول الصوت أولاً!")
-        else:
-            try:
-                with st.spinner("جاري تنفيذ الـ 11 إضافة..."):
-                    # [1. معالجة الصوت]
-                    v_p = os.path.join(ASSETS_DIR, "final_v.mp3")
-                    if v_src == "بشري 🎤" and u_voice:
-                        with open(v_p, "wb") as f: f.write(u_voice.getbuffer())
-                    else:
-                        gTTS(voice_text, lang='ar').save(v_p)
-                    voice = AudioFileClip(v_p)
-
-                    # [2. الأبعاد]
-                    if "9:16" in platform: w, h = 1080, 1920
-                    elif "16:9" in platform: w, h = 1920, 1080
-                    else: w, h = 1080, 1080
-
-                    # [3. المشاهد والزووم]
-                    sentences = [s.strip() for s in re.split(r'[.؟!،]+', voice_text) if len(s.strip()) > 1]
-                    dur = voice.duration / len(sentences)
-                    clips = []
+                # بناء الفيديو الأساسي
+                sentences = [s.strip() for s in re.split(r'[.؟!،]+', voice_text) if len(s.strip()) > 1]
+                dur = voice.duration / len(sentences)
+                
+                # 
+                
+                clips = []
+                for i, sent in enumerate(sentences):
+                    img_p = os.path.join(ASSETS_DIR, f"i_{i}.jpg")
+                    # (كود جلب الصور هنا...)
+                    resp = requests.get(f"https://picsum.photos/seed/{i}/{w}/{h}")
+                    Image.open(io.BytesIO(resp.content)).save(img_p)
                     
-                    for i, sent in enumerate(sentences):
-                        img_p = os.path.join(ASSETS_DIR, f"sc_{i}.jpg")
-                        if img_opt == "أوتوماتيك (سياقي)":
-                            get_guaranteed_image(sent + " " + (img_keywords or ""), img_p, (w, h))
-                        else:
-                            with open(img_p, "wb") as f: f.write(u_imgs[i % len(u_imgs)].getbuffer())
-                        
-                        c = ImageClip(img_p).with_duration(dur + 0.4)
-                        # سرعة الزووم حسب النمط
-                        z = 1.2 if m_style == "سينمائي 🎬" else 1.1
-                        c = c.resized(lambda t: 1 + (z-1) * (t / dur))
-                        clips.append(c)
+                    c = ImageClip(img_p).with_duration(dur).resized(lambda t: 1 + 0.1 * (t / dur))
+                    clips.append(c)
+                
+                video_track = concatenate_videoclips(clips, method="compose")
 
-                    final_video = concatenate_videoclips(clips, method="compose", padding=-0.3)
-                    
-                    # [4. الإنتاج والعرض]
-                    out_path = os.path.join(VIDEOS_DIR, "Master_Production.mp4")
-                    final_video.with_audio(voice).write_videofile(out_path, fps=24, codec="libx264")
-                    
-                    st.video(out_path)
-                    st.success(f"🎯 تم الإنتاج بنمط {m_style} بنجاح!")
+                # --- نظام الطبقات (Overlays) ---
+                layers = [video_track]
+                
+                # 1. إضافة البنر (في الأسفل)
+                if use_banner:
+                    b_path = create_pro_banner((w, h), banner_text)
+                    banner_clip = ImageClip(b_path).with_duration(voice.duration).with_position(("center", "bottom"))
+                    layers.append(banner_clip)
 
-                    # [📊 7. ملخص الـ SEO والبيانات]
-                    st.divider()
-                    st.markdown("### 📊 ملخص الفيديو والبيانات (SEO)")
-                    st.info(f"**الاسم:** {sentences[0][:50]}")
-                    st.info(f"**الكلمات المفتاحية:** {img_keywords or 'سياق تلقائي'}")
-                    st.info(f"**الوصف الدقيق:** فيديو {m_style} احترافي تم إنتاجه بمواصفات Mediawy Studio.")
+                # 2. إضافة اللوجو (فوق كل شيء في الزاوية)
+                if use_logo and u_logo:
+                    l_p = os.path.join(ASSETS_DIR, "user_logo.png")
+                    logo_img = Image.open(u_logo).convert("RGBA")
+                    logo_img.thumbnail((w // 6, h // 6)) # تصغير اللوجو بنسبة متناسقة
+                    logo_img.save(l_p)
+                    logo_clip = ImageClip(l_p).with_duration(voice.duration).with_position((w - (w//6) - 20, 20))
+                    layers.append(logo_clip)
 
-            except Exception as e:
-                st.error(f"⚠️ خطأ فني: {str(e)}")
+                final_video = CompositeVideoClip(layers, size=(w, h)).with_audio(voice)
+                out = os.path.join(VIDEOS_DIR, "Final_V107.mp4")
+                final_video.write_videofile(out, fps=24, codec="libx264")
+                
+                st.video(out)
+                st.success("🎯 تم الرندر واللوجو ظاهر الآن!")
+                
+        except Exception as e:
+            st.error(f"خطأ: {e}")
     st.markdown("</div>", unsafe_allow_html=True)
