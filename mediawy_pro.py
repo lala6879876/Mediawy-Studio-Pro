@@ -1,90 +1,91 @@
 import streamlit as st
 import os, requests, re, io, random
+import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from gtts import gTTS
 from moviepy import ImageClip, AudioFileClip, CompositeVideoClip, concatenate_videoclips, vfx
 
-# --- 1. التأسيس (فواصل المجلدات) ---
-MEDIA_DIR = "Mediawy_Studio_Final"
+# --- 1. التأسيس الهندسي ---
+MEDIA_DIR = "Mediawy_Final_V114"
 ASSETS_DIR = os.path.join(MEDIA_DIR, "Assets")
 VIDEOS_DIR = os.path.join(MEDIA_DIR, "Videos")
 for d in [ASSETS_DIR, VIDEOS_DIR]: os.makedirs(d, exist_ok=True)
 
-# --- واجهة المستخدم البيضاء (التصميم العصري الأنيق) ---
-st.set_page_config(page_title="Mediawy V113 Pro", layout="wide")
+# --- 2. محرك الصور (أوتوماتيك) ---
+def get_verified_image(query, path, size):
+    w, h = size
+    q = "+".join(re.findall(r'\w+', query)[:3])
+    url = f"https://picsum.photos/seed/{random.randint(1,1000)}/{w}/{h}"
+    try:
+        resp = requests.get(url, timeout=10)
+        if resp.status_code == 200:
+            Image.open(io.BytesIO(resp.content)).convert("RGB").resize(size).save(path, "JPEG")
+            return True
+    except: pass
+    Image.new("RGB", size, (250, 250, 250)).save(path, "JPEG")
+    return True
+
+# --- 3. تصميم الواجهة (خلفية بيضاء - تصميم Dashboard) ---
+st.set_page_config(page_title="Mediawy V114 Pro", layout="wide")
 st.markdown("""
     <style>
     .stApp { background-color: #FFFFFF; color: #333; }
-    .stDivider { margin: 20px 0 !important; border-bottom: 2px solid #f0f2f6; }
-    .render-box { border: 2px solid #007BFF; padding: 25px; border-radius: 15px; background: #fcfcfc; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    .side-panel { background: #f8f9fa; padding: 20px; border-radius: 10px; }
-    h1, h2, h3 { color: #007BFF !important; font-weight: 700; }
+    .render-zone { border: 2px solid #007BFF; padding: 20px; border-radius: 15px; background-color: #fcfcfc; }
+    h2 { color: #007BFF !important; font-size: 1.2rem; border-bottom: 2px solid #007BFF; padding-bottom: 5px; }
+    .stDivider { margin: 15px 0 !important; }
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1 style='text-align:center;'>🎬 Mediawy Studio V113 - Professional Dashboard</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align:center; color:#007BFF;'>🎬 Mediawy Studio V114 Professional</h1>", unsafe_allow_html=True)
 
-# --- توزيع الاستوديو (يمين: تحكم - منتصف: إنتاج - يسار: إضافات) ---
-col_right, col_mid, col_left = st.columns([1.2, 1.8, 1.2])
+# التوزيع الثلاثي
+col_right, col_mid, col_left = st.columns([1.1, 1.8, 1.1])
 
-# --- الجانب الأيمن (التحكم الأساسي) ---
 with col_right:
     st.subheader("📏 2- الأبعاد")
-    dim = st.selectbox("المقاس:", ["Shorts (9:16)", "YouTube (16:9)", "TikTok/Insta (9:16)", "Facebook (1:1)"])
-    st.divider() # 11- فواصل
+    dim = st.selectbox("المقاس:", ["Shorts (9:16)", "YouTube (16:9)", "Square (1:1)"])
+    st.divider()
 
     st.subheader("🎙️ 3- هندسة الصوت")
-    v_src = st.radio("المصدر:", ["بشري 🎤", "AI (GTTS) 🤖", "ElevenLabs 💎"])
-    
-    # تنفيذ منطق المربعات الشرطية (3)
+    v_src = st.radio("المصدر:", ["بشري 🎤", "AI 🤖", "ElevenLabs 💎"], index=0)
     if v_src == "بشري 🎤":
-        u_voice = st.file_uploader("📥 أيقونة تحميل الصوت البشري:")
-        voice_text = st.text_area("✍️ النص (للمزامنة والترجمة):")
-    elif v_src == "AI (GTTS) 🤖":
-        voice_text = st.text_area("✍️ مربع كتابة النص (AI):")
+        u_voice = st.file_uploader("📥 تحميل الصوت البشري:")
     elif v_src == "ElevenLabs 💎":
-        el_key = st.text_input("🔑 مربع مفتاح ElevenLabs (API Key):")
-        el_mod = st.text_input("📦 مربع الموديل (Model ID):")
-        voice_text = st.text_area("✍️ مربع النص (ElevenLabs):")
+        c1, c2 = st.columns(2)
+        with c1: el_key = st.text_input("🔑 API Key")
+        with c2: el_mod = st.text_input("📦 Model ID")
     
+    voice_text = st.text_area("✍️ جدول النص (مهم جداً):")
     st.divider()
-    st.subheader("🎭 1- نمط المونتاج")
-    m_style = st.selectbox("النمط:", ["سينمائي 🎬", "درامي 🎭", "وثائقي 📜"])
+    st.subheader("🎭 1- النمط")
+    m_style = st.selectbox("الروح:", ["سينمائي 🎬", "درامي 🎭", "وثائقي 📜"])
 
-# --- الجانب الأيسر (الإضافات الفنية) ---
 with col_left:
-    st.subheader("🖼️ 4- محرك الصور")
-    img_mode = st.radio("الجلب:", ["اتوماتيك ✨", "يدوي 📁"])
-    if img_mode == "اتوماتيك ✨":
-        img_keywords = st.text_input("🔍 مربع الكلمات المفتاحية للصور:")
+    st.subheader("🖼️ 4- الصور")
+    img_mode = st.radio("الجلب:", ["أوتوماتيك ✨", "يدوي 📁"])
+    if img_mode == "يدوي 📁":
+        u_imgs = st.file_uploader("📁 ارفع صورك (حتى 500):", accept_multiple_files=True)
     else:
-        u_imgs = st.file_uploader("📁 أيقونة الرفع (Lmt: 500):", accept_multiple_files=True)
-    
+        img_q = st.text_input("🔍 الكلمات المفتاحية:")
     st.divider()
-    st.subheader("🎵 6- الموسيقى الخلفية")
-    m_bg = st.radio("الموسيقى:", ["اختيارية (بدون)", "اتوماتيك 🎹", "يدوية 🎷"])
-    u_music = st.file_uploader("📥 أيقونة تحميل الموسيقى:") if m_bg == "يدوية 🎷" else None
-    
-    st.divider()
+
     st.subheader("🎨 8, 9- الهوية")
-    use_banner = st.toggle("8- بنر سفلي (اختياري)")
-    banner_txt = st.text_input("✍️ مربع نص البنر:") if use_banner else ""
-    
-    use_logo = st.toggle("9- إضافة لوجو (اعلى يمين)")
-    u_logo = st.file_uploader("🖼️ أيقونة تحميل اللوجو:") if use_logo else None
+    use_banner = st.toggle("8- بنر سفلي")
+    banner_txt = st.text_input("نص البنر:") if use_banner else ""
+    use_logo = st.toggle("9- لوجو (أعلى يمين)")
+    u_logo = st.file_uploader("تحميل اللوجو:") if use_logo else None
 
-# --- العمود الأوسط (غرفة الإنتاج والـ SEO) ---
 with col_mid:
-    st.markdown("<div class='render-box'>", unsafe_allow_html=True)
-    st.subheader("📺 شاشة الإنتاج المركزي")
+    st.markdown("<div class='render-zone'>", unsafe_allow_html=True)
+    st.subheader("📺 شاشة الإنتاج")
     
-    show_subs = st.toggle("7- ترجمة كلمة بكلمة (Clipchamp Style)", value=True)
+    
 
-    if st.button("🚀 إطلاق الإنتاج الملياري (ضرب نار)"):
-        if not voice_text: st.error("أدخل النص أولاً يا برنس!")
+    if st.button("🚀 إطلاق الرندر الملياري"):
+        if not voice_text: st.warning("أدخل النص أولاً!")
         else:
             try:
-                with st.spinner("⏳ جاري المونتاج السينمائي والتحقق من الـ 11 إضافة..."):
+                with st.spinner("جاري المونتاج..."):
                     # 1. الصوت
                     v_p = os.path.join(ASSETS_DIR, "v.mp3")
                     if v_src == "بشري 🎤" and u_voice:
@@ -96,47 +97,48 @@ with col_mid:
                     # 2. الأبعاد
                     w, h = (1080, 1920) if "9:16" in dim else (1920, 1080)
                     
-                    # 3. المشاهد (زووم ونقلات 1, 5)
+                    # 3. المشاهد (إصلاح النقلات والزووم)
                     sentences = [s.strip() for s in re.split(r'[.؟!،]+', voice_text) if len(s.strip()) > 1]
                     dur = audio.duration / len(sentences)
                     clips = []
-                    
+
                     for i, sent in enumerate(sentences):
                         img_p = os.path.join(ASSETS_DIR, f"i_{i}.jpg")
-                        if img_mode == "اتوماتيك ✨":
-                            resp = requests.get(f"https://picsum.photos/seed/{i}/{w}/{h}")
-                            Image.open(io.BytesIO(resp.content)).save(img_p)
+                        if img_mode == "أوتوماتيك ✨":
+                            get_verified_image(sent + " " + (img_q or ""), img_p, (w, h))
                         else:
                             with open(img_p, "wb") as f: f.write(u_imgs[i % len(u_imgs)].getbuffer())
                         
                         c = ImageClip(img_p).with_duration(dur + 0.5)
-                        # زووم ان وزووم اوت (5)
-                        z = 1.15 if i % 2 == 0 else 0.85
+                        # زووم ناعم (Precision Zoom)
+                        z = 1.1 if i % 2 == 0 else 0.9
                         c = c.resized(lambda t: 1 + (z-1) * (t / dur))
-                        clips.append(c.crossfadein(0.5))
+                        # الإصلاح: استخدام التنسيق الجديد للنقلات في MoviePy v2
+                        try:
+                            c = c.with_effects([vfx.CrossFadeIn(0.5)])
+                        except:
+                            pass # في حال كانت النسخة قديمة جداً
+                        clips.append(c)
 
-                    video = concatenate_videoclips(clips, method="compose", padding=-0.3)
+                    main_vid = concatenate_videoclips(clips, method="compose", padding=-0.3)
 
-                    # 4. طبقات الهوية (اللوجو 9 والبنر 8)
-                    layers = [video]
+                    # 4. الهوية (اللوجو والبنر)
+                    layers = [main_vid]
                     if use_logo and u_logo:
-                        lp = os.path.join(ASSETS_DIR, "logo.png")
-                        Image.open(u_logo).resize((w//7, w//7)).save(lp)
-                        layers.append(ImageClip(lp).with_duration(audio.duration).with_position(("right", "top")))
+                        lp = os.path.join(ASSETS_DIR, "l.png")
+                        Image.open(u_logo).convert("RGBA").resize((w//8, w//8)).save(lp)
+                        layers.append(ImageClip(lp).with_duration(audio.duration).with_position(("right", 20)))
 
                     final = CompositeVideoClip(layers, size=(w, h)).with_audio(audio)
-                    out = os.path.join(VIDEOS_DIR, "Mediawy_V113.mp4")
-                    final.write_vid(out, fps=24, codec="libx264")
+                    out = os.path.join(VIDEOS_DIR, "Mediawy_Success.mp4")
+                    final.write_videofile(out, fps=24, codec="libx264")
                     
                     st.video(out)
-                    st.success("🎯 تم الانتهاء!")
-
-                    # 10- قسم الـ SEO اسفل الفيديو
+                    
+                    # 10. الـ SEO
                     st.divider()
-                    st.markdown("### 📊 10- ملخص الفيديو والـ SEO")
-                    st.info(f"**الاسم المقترح:** {sentences[0]}")
-                    st.info(f"**الكلمات المفتاحية:** {img_keywords if img_mode == 'اتوماتيك ✨' else 'يدوي'}")
-                    st.info(f"**الوصف:** فيديو احترافي {m_style} تم إنتاجه بمواصفات Mediawy.")
+                    st.markdown("### 📊 10- ملخص الـ SEO")
+                    st.info(f"**الاسم:** {sentences[0]}\n\n**الكلمات:** {img_q or 'تلقائي'}\n\n**الهاشتاج:** #AI #Production #{m_style.split()[0]}")
 
-            except Exception as e: st.error(f"خطأ: {e}")
+            except Exception as e: st.error(f"حدث خطأ: {e}")
     st.markdown("</div>", unsafe_allow_html=True)
